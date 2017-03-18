@@ -8,44 +8,47 @@ SVG.Image = SVG.invent({
   // Add class methods
 , extend: {
     // (re)load image
-    load: function(url) {
-      if (!url) return this
+    load: function() {
+      var img  = document.createElement('img')
 
-      var self = this
-        , img  = document.createElement('img')
-      
-      // preload image
-      img.onload = function() {
-        var p = self.parent(SVG.Pattern)
-
-        if(p === null) return
+      return function(url) {
+        if (!url) return this
         
-        // ensure image size
-        if (self.width() == 0 && self.height() == 0)
-          self.size(img.width, img.height)
+        var self = this
 
-        // ensure pattern size if not set
-        if (p && p.width() == 0 && p.height() == 0)
-          p.size(self.width(), self.height())
-        
-        // callback
-        if (typeof self._loaded === 'function')
-          self._loaded.call(self, {
-            width:  img.width
-          , height: img.height
-          , ratio:  img.width / img.height
-          , url:    url
-          })
-      }
+        // preload image
+        img.onload = function() {
+          var p = self.parent(SVG.Pattern)
 
-      img.onerror = function(e){
-        if (typeof self._error === 'function'){
-            self._error.call(self, e)
+          if(p === null) return
+          
+          // ensure image size
+          if (self.width() == 0 && self.height() == 0)
+            self.size(img.width, img.height)
+
+          // ensure pattern size if not set
+          if (p && p.width() == 0 && p.height() == 0)
+            p.size(self.width(), self.height())
+          
+          // callback
+          if (typeof self._loaded === 'function')
+            self._loaded.call(self, {
+              width:  img.width
+            , height: img.height
+            , ratio:  img.width / img.height
+            , url:    url
+            })
         }
-      }
 
-      return this.attr('href', (img.src = this.src = url), SVG.xlink)
-    }
+        img.onerror = function(e){
+          if (typeof self._error === 'function'){
+              self._error.call(self, e)
+          }
+        }
+
+        return self.attr('href', (img.src = self.src = url), SVG.xlink)
+      }
+  }()
     // Add loaded callback
   , loaded: function(loaded) {
       this._loaded = loaded
@@ -62,7 +65,13 @@ SVG.Image = SVG.invent({
 , construct: {
     // create image element, load image and set its size
     image: function(source, width, height) {
-      return this.put(new SVG.Image).load(source).size(width || 0, height || width || 0)
+      var elt = this.put(new SVG.Image);
+      if (source.startsWith('data:')) {
+        elt.attr('href', (elt.src = source), SVG.xlink)
+      } else {
+        elt.load(source).size(width || 0, height || width || 0)
+      }
+      return elt
     }
   }
 
